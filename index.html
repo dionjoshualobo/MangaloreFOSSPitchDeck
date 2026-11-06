@@ -163,6 +163,12 @@
       background: var(--foss-teal-bright);
       outline: 2px solid var(--foss-teal-bright);
     }
+    .annotationLayer .direct-pdf-link {
+      position: absolute;
+      display: block;
+      z-index: 2;
+      background: transparent;
+    }
 
     /* Bottom Control Bar */
     footer {
@@ -272,7 +278,7 @@
       <span class="deck-title">MangaloreFOSS 2.0 Sponsorship Deck</span>
     </div>
     <div class="header-actions">
-      <a href="./deck.pdf" download class="download-link" title="Download raw PDF">
+      <a href="./MangaloreFOSS2.0%20Sponsorship%20Deck.pdf" download class="download-link" title="Download raw PDF">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span>PDF</span>
       </a>
@@ -322,7 +328,7 @@
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
     // Path to your PDF file in the same repository or directory
-    const PDF_PATH = './newdeck.pdf';
+    const PDF_PATH = './MangaloreFOSS2.0 Sponsorship Deck.pdf';
 
     let pdf = null;
     let pageNum = 1;
@@ -332,6 +338,8 @@
     const pageCache = new Map();
     const pageRenderPromises = new Map();
     const annotationCache = new Map();
+    let activeLinkAnnotations = [];
+    let activeViewport = null;
 
     const canvas = document.getElementById('pdf-canvas');
     const ctx = canvas.getContext('2d');
@@ -358,6 +366,10 @@
       try {
         const renderedPage = await getRenderedPage(num);
         const { bitmap, page, viewport, annotations } = renderedPage;
+        activeLinkAnnotations = annotations.filter(annotation =>
+          annotation.subtype === 'Link' && annotation.url && annotation.rect
+        );
+        activeViewport = viewport;
 
         canvas.width = bitmap.width;
         canvas.height = bitmap.height;
@@ -370,23 +382,8 @@
         annotLayer.style.width = Math.floor(viewport.width) + "px";
         annotLayer.style.height = Math.floor(viewport.height) + "px";
 
-        const linkService = new pdfjsLib.SimpleLinkService();
-        linkService.externalLinkTarget = pdfjsLib.LinkTarget.BLANK;
-        linkService.externalLinkRel = 'noopener noreferrer';
-        pdfjsLib.AnnotationLayer.render({
-          viewport: viewport.clone({ dontFlip: true }),
-          div: annotLayer,
-          annotations: annotations,
-          page: page,
-          linkService
-        });
-
-        // Target external links to new tab
-        annotLayer.querySelectorAll('a').forEach(link => {
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          link.style.pointerEvents = 'auto';
-        });
+        const linkAnnotations = annotations.filter(annotation => annotation.subtype === 'Link');
+        addDirectLinkHitboxes(linkAnnotations, viewport.clone({ dontFlip: true }));
 
         // Update UI states only after the requested page is fully rendered.
         document.getElementById('page-current').textContent = num;
@@ -404,6 +401,47 @@
         }
       }
     }
+
+    function addDirectLinkHitboxes(linkAnnotations, viewport) {
+      linkAnnotations.forEach(annotation => {
+        if (!annotation.url || !annotation.rect) return;
+        const [left, top, right, bottom] = viewport
+          .convertToViewportRectangle(annotation.rect);
+        const link = document.createElement('a');
+        link.className = 'direct-pdf-link';
+        link.href = annotation.url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.style.left = `${Math.min(left, right)}px`;
+        link.style.top = `${Math.min(top, bottom)}px`;
+        link.style.width = `${Math.abs(right - left)}px`;
+        link.style.height = `${Math.abs(bottom - top)}px`;
+        annotLayer.appendChild(link);
+      });
+    }
+
+    canvas.addEventListener('click', event => {
+      if (!activeViewport || activeLinkAnnotations.length === 0) return;
+      const bounds = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / bounds.width;
+      const scaleY = canvas.height / bounds.height;
+      const pdfPoint = activeViewport.convertToPdfPoint(
+        (event.clientX - bounds.left) * scaleX / (window.devicePixelRatio || 1),
+        (event.clientY - bounds.top) * scaleY / (window.devicePixelRatio || 1)
+      );
+
+      const annotation = activeLinkAnnotations.find(({ rect }) => {
+        const [left, bottom, right, top] = rect;
+        return pdfPoint[0] >= Math.min(left, right) &&
+          pdfPoint[0] <= Math.max(left, right) &&
+          pdfPoint[1] >= Math.min(bottom, top) &&
+          pdfPoint[1] <= Math.max(bottom, top);
+      });
+
+      if (annotation) {
+        window.open(annotation.url, '_blank', 'noopener,noreferrer');
+      }
+    });
 
     async function getRenderedPage(num) {
       const page = await pdf.getPage(num);
