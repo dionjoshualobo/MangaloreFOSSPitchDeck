@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>MangaloreFOSS 2.0 — Sponsorship Deck</title>
+  
+  <!-- PDF.js Engine & Layer Styles -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css" />
+
+  <style>
+    :root {
+      --bg-dark: #0a1315;
+      --surface-dark: #112024;
+      --card-border: rgba(222, 211, 189, 0.14);
+      --foss-teal: #249495;
+      --foss-teal-bright: #38b2a3;
+      --foss-teal-glow: rgba(36, 148, 149, 0.35);
+      --sand-cream: #ded3bd;
+      --sand-muted: #95a5a6;
+      --text-main: #f4ede0;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: radial-gradient(circle at 50% 10%, #152b31 0%, var(--bg-dark) 100%);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      height: 100vh;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      user-select: none;
+    }
+    body:fullscreen {
+      height: 100vh;
+      min-height: 0;
+    }
+
+    /* Top Reading Progress Line */
+    #progress-container {
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.05);
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 100;
+    }
+    #progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--foss-teal), var(--foss-teal-bright));
+      transition: width 0.25s ease-out;
+      box-shadow: 0 0 10px var(--foss-teal-glow);
+    }
+
+    /* Header Bar */
+    header {
+      height: 54px;
+      background: rgba(17, 32, 36, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 50;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .badge {
+      background: rgba(36, 148, 149, 0.2);
+      border: 1px solid var(--foss-teal);
+      color: var(--foss-teal-bright);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .deck-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--sand-cream);
+      letter-spacing: 0.01em;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .download-link {
+      color: var(--sand-muted);
+      font-size: 12px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .download-link:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    /* Main Presentation Canvas Viewport */
+    #stage {
+      flex: 1;
+      min-height: 0;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 16px;
+      overflow: hidden;
+      touch-action: pan-y;
+    }
+
+    #deck-wrapper {
+      position: relative;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.7),
+                  0 0 0 1px var(--card-border);
+      transition: box-shadow 0.3s;
+    }
+
+    canvas {
+      display: block;
+      margin: 0 auto;
+    }
+
+    /* PDF.js Link Layer */
+    .annotationLayer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      display: block;
+      pointer-events: none;
+    }
+    .annotationLayer section, 
+    .annotationLayer a {
+      pointer-events: auto;
+      cursor: pointer;
+    }
+    .annotationLayer .linkAnnotation > a:hover {
+      opacity: 0.2;
+      background: var(--foss-teal-bright);
+      outline: 2px solid var(--foss-teal-bright);
+    }
+
+    /* Bottom Control Bar */
+    footer {
+      height: 60px;
+      flex: 0 0 60px;
+      background: rgba(17, 32, 36, 0.95);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 50;
+    }
+
+    .shortcuts-pill {
+      font-size: 12px;
+      color: var(--sand-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    kbd {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 3px;
+      padding: 2px 5px;
+      font-family: inherit;
+      font-size: 11px;
+      color: var(--sand-cream);
+    }
+
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .nav-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: var(--sand-cream);
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: var(--foss-teal);
+      border-color: var(--foss-teal);
+      color: #fff;
+      box-shadow: 0 0 12px var(--foss-teal-glow);
+    }
+    .nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .page-counter {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--sand-cream);
+      padding: 0 8px;
+      font-variant-numeric: tabular-nums;
+    }
+    .page-counter span {
+      color: var(--sand-muted);
+      font-weight: 400;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--sand-cream);
+      padding: 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .icon-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--card-border);
+    }
+
+    @media (max-width: 640px) {
+      .shortcuts-pill { display: none; }
+      .deck-title { font-size: 13px; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      footer { padding: 0 12px; }
+      .nav-btn { padding: 6px 12px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="progress-container"><div id="progress-bar"></div></div>
+
+  <header>
+    <div class="brand-group">
+      <span class="badge">FOSSUnited Mangalore</span>
+      <span class="deck-title">MangaloreFOSS 2.0 Sponsorship Deck</span>
+    </div>
+    <div class="header-actions">
+      <a href="./deck.pdf" download class="download-link" title="Download raw PDF">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>PDF</span>
+      </a>
+      <button id="btn-fullscreen" class="icon-btn" title="Toggle Fullscreen (F)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="stage">
+    <div id="deck-wrapper">
+      <canvas id="pdf-canvas"></canvas>
+      <div id="annotation-layer" class="annotationLayer"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="shortcuts-pill">
+      <span>Navigate:</span>
+      <kbd>←</kbd><kbd>→</kbd>
+      <span>or</span>
+      <kbd>Space</kbd>
+    </div>
+
+    <div class="nav-controls">
+      <button id="btn-prev" class="nav-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        <span>Prev</span>
+      </button>
+      
+      <div class="page-counter">
+        <span id="page-current">1</span> <span>/</span> <span id="page-total">-</span>
+      </div>
+
+      <button id="btn-next" class="nav-btn">
+        <span>Next</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
+    <div style="width: 80px; display: flex; justify-content: flex-end;">
+      <!-- Spacer to balance layout -->
+    </div>
+  </footer>
+
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    // Path to your PDF file in the same repository or directory
+    const PDF_PATH = './newdeck.pdf';
+
+    let pdf = null;
+    let pageNum = 1;
+    let isRendering = false;
+    let pendingPage = null;
+    let resizeTimer;
+    const pageCache = new Map();
+    const pageRenderPromises = new Map();
+    const annotationCache = new Map();
+
+    const canvas = document.getElementById('pdf-canvas');
+    const ctx = canvas.getContext('2d');
+    const annotLayer = document.getElementById('annotation-layer');
+    const stage = document.getElementById('stage');
+    const progressBar = document.getElementById('progress-bar');
+    const prevBtn = document.getElementById('btn-prev');
+    const nextBtn = document.getElementById('btn-next');
+
+    pdfjsLib.getDocument(PDF_PATH).promise.then(loadedPdf => {
+      pdf = loadedPdf;
+      document.getElementById('page-total').textContent = pdf.numPages;
+      queueRender(pageNum);
+    }).catch(err => {
+      console.error("PDF load error:", err);
+      stage.innerHTML = `<div style="color:var(--sand-cream); text-align:center;">
+        <p style="margin-bottom:8px; font-weight:600;">Unable to load presentation deck.</p>
+        <p style="font-size:12px; color:var(--sand-muted);">Verify <code>${PDF_PATH}</code> is placed in the root directory.</p>
+      </div>`;
+    });
+
+    async function render(num) {
+      isRendering = true;
+      try {
+        const renderedPage = await getRenderedPage(num);
+        const { bitmap, page, viewport, annotations } = renderedPage;
+
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        canvas.style.width = Math.floor(viewport.width) + "px";
+        canvas.style.height = Math.floor(viewport.height) + "px";
+        ctx.drawImage(bitmap, 0, 0);
+
+        // Align and render Annotation Layer for clickable links
+        annotLayer.innerHTML = '';
+        annotLayer.style.width = Math.floor(viewport.width) + "px";
+        annotLayer.style.height = Math.floor(viewport.height) + "px";
+
+        const linkService = new pdfjsLib.SimpleLinkService();
+        linkService.externalLinkTarget = pdfjsLib.LinkTarget.BLANK;
+        linkService.externalLinkRel = 'noopener noreferrer';
+        pdfjsLib.AnnotationLayer.render({
+          viewport: viewport.clone({ dontFlip: true }),
+          div: annotLayer,
+          annotations: annotations,
+          page: page,
+          linkService
+        });
+
+        // Target external links to new tab
+        annotLayer.querySelectorAll('a').forEach(link => {
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.style.pointerEvents = 'auto';
+        });
+
+        // Update UI states only after the requested page is fully rendered.
+        document.getElementById('page-current').textContent = num;
+        progressBar.style.width = ((num / pdf.numPages) * 100) + '%';
+        prevBtn.disabled = (num <= 1);
+        nextBtn.disabled = (num >= pdf.numPages);
+
+        preloadAllPages();
+      } finally {
+        isRendering = false;
+        if (pendingPage !== null) {
+          const nextPage = pendingPage;
+          pendingPage = null;
+          queueRender(nextPage);
+        }
+      }
+    }
+
+    async function getRenderedPage(num) {
+      const page = await pdf.getPage(num);
+      const stageW = stage.clientWidth - 32;
+      const stageH = stage.clientHeight - 32;
+      const unscaledViewport = page.getViewport({ scale: 1.0 });
+      const fitScale = Math.min(
+        stageW / unscaledViewport.width,
+        stageH / unscaledViewport.height
+      );
+      const viewport = page.getViewport({ scale: fitScale });
+      const pixelRatio = window.devicePixelRatio || 1;
+      const width = Math.floor(viewport.width * pixelRatio);
+      const height = Math.floor(viewport.height * pixelRatio);
+      const cacheKey = `${num}:${width}x${height}`;
+      const cached = pageCache.get(cacheKey);
+
+      if (cached) {
+        return { ...cached, page, viewport, pixelRatio };
+      }
+
+      const existingRender = pageRenderPromises.get(cacheKey);
+      if (existingRender) {
+        const bitmap = await existingRender;
+        const annotations = annotationCache.get(num) || [];
+        return { bitmap, page, viewport, pixelRatio, annotations };
+      }
+
+      const bitmap = document.createElement('canvas');
+      bitmap.width = width;
+      bitmap.height = height;
+      const bitmapContext = bitmap.getContext('2d');
+      bitmapContext.scale(pixelRatio, pixelRatio);
+      const renderPromise = page.render({ canvasContext: bitmapContext, viewport }).promise
+        .then(async () => {
+          const annotations = annotationCache.has(num)
+            ? annotationCache.get(num)
+            : await page.getAnnotations();
+          annotationCache.set(num, annotations);
+          pageCache.set(cacheKey, { bitmap, page, viewport, pixelRatio, annotations });
+          return bitmap;
+        })
+        .finally(() => pageRenderPromises.delete(cacheKey));
+      pageRenderPromises.set(cacheKey, renderPromise);
+      await renderPromise;
+      const annotations = annotationCache.get(num) || [];
+
+      return { bitmap, page, viewport, pixelRatio, annotations };
+    }
+
+    async function preloadAllPages() {
+      if (!pdf) return;
+      for (let num = 1; num <= pdf.numPages; num++) {
+        if (num === pageNum) continue;
+        try {
+          await getRenderedPage(num);
+        } catch (err) {
+          console.warn(`Unable to preload PDF page ${num}:`, err);
+        }
+      }
+    }
+
+    function queueRender(num) {
+      if (!pdf) return;
+      if (isRendering) {
+        pendingPage = num;
+      } else {
+        render(num);
+      }
+    }
+
+    const goToPrev = () => { if (pdf && pageNum > 1) { pageNum--; queueRender(pageNum); } };
+    const goToNext = () => { if (pdf && pageNum < pdf.numPages) { pageNum++; queueRender(pageNum); } };
+
+    prevBtn.addEventListener('click', goToPrev);
+    nextBtn.addEventListener('click', goToNext);
+
+    // Fullscreen Toggle
+    document.getElementById('btn-fullscreen').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.();
+      } else {
+        document.exitFullscreen?.();
+      }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      document.body.style.height = document.fullscreenElement ? '100dvh' : '';
+      if (pdf) {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => queueRender(pageNum), 100);
+      }
+    });
+
+    // Keyboard controls
+    window.addEventListener('keydown', e => {
+      if (['ArrowRight', 'PageDown', ' '].includes(e.key)) {
+        e.preventDefault();
+        goToNext();
+      }
+      if (['ArrowLeft', 'PageUp'].includes(e.key)) {
+        e.preventDefault();
+        goToPrev();
+      }
+      if (e.key === 'Home') {
+        e.preventDefault();
+        if (pdf) {
+          pageNum = 1;
+          queueRender(pageNum);
+        }
+      }
+      if (e.key === 'End') {
+        e.preventDefault();
+        if (pdf) {
+          pageNum = pdf.numPages;
+          queueRender(pageNum);
+        }
+      }
+      if (e.key.toLowerCase() === 'f') {
+        document.getElementById('btn-fullscreen').click();
+      }
+    });
+
+    // Mobile Touch Swipe Handling
+    let touchStartX = 0;
+    let touchEndX = 0;
+    stage.addEventListener('touchstart', e => {
+      touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    stage.addEventListener('touchend', e => {
+      touchEndX = e.changedTouches[0].screenX;
+      const swipeDistance = touchEndX - touchStartX;
+      if (Math.abs(swipeDistance) > 45) {
+        if (swipeDistance < 0) goToNext();
+        else goToPrev();
+      }
+    }, { passive: true });
+
+    // Responsive debounce on resize
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (pdf) queueRender(pageNum);
+      }, 100);
+    });
+  </script>
+</body>
+</html>
